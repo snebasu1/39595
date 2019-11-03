@@ -1,9 +1,5 @@
 import java.util.*;
-
-import sun.tools.tree.ForStatement;
-
 import java.lang.*;
-
 
 public class Interpreter{
   private HashMap<Integer, String> map = new HashMap<>(){{
@@ -65,25 +61,25 @@ public class Interpreter{
   public void runCommand(String command){
     switch(command){
       case "cmpe":
-        float cmpe = (rstack.get(sp) == rstack.get(sp-1)) ? 1.0 : 0.0;
+        float cmpe = (rstack.get(sp) == rstack.get(sp-1)) ? 1 : 0;
         rstack.set(sp-1, cmpe);
         sp--;
         break;
 
       case "cmplt":
-        float cmplt = (rstack.get(sp - 1) < rstack.get(sp)) ? 1.0 : 0.0;
+        float cmplt = (rstack.get(sp - 1) < rstack.get(sp)) ? 1 : 0;
         rstack.set(sp-1, cmplt);
         sp--;
         break;
 
       case "cmpgt":
-        float cmpgt = (rstack.get(sp - 1) > rstack.get(sp)) ? 1.0 : 0.0;
+        float cmpgt = (rstack.get(sp - 1) > rstack.get(sp)) ? 1 : 0;
         rstack.set(sp-1, cmpgt);
         sp--;
         break;
 
       case "jmp":
-        pc = rstack.get(sp);
+        pc = (int) Math.round(rstack.get(sp));
         sp--;
         break;
 
@@ -92,23 +88,23 @@ public class Interpreter{
         break;
 
       case "call":
-        int call = sp - rstack.get(sp) - 1;
+        int call = sp - (int) Math.round(rstack.get(sp)) - 1;
         sp--;
         fpsp++;
         fpstack.add(call);
-        pc = rstack.get(sp);
+        pc = (int) Math.round(rstack.get(sp));
         sp--; 
         break;
 
       case "ret":
         sp = fpstack.get(fpsp);
-        pc = rstack.get(sp);
+        pc = (int) Math.round(rstack.get(sp));
         fpsp--;
         sp--;
         break;
 
       case "pushc":
-        rstack.add(Byte.toUnsignedFloat(memory[pc+1]));
+        rstack.add((float)Byte.toUnsignedInt(memory[pc+1]));
         sp++;
         pc += 2;
         break;
@@ -135,22 +131,22 @@ public class Interpreter{
         break;
 
       case "pushvc":
-        float pushvc = rstack.get(fpstack.get(fpsp) + (int)(rstack.get(sp)) + 1);
+        float pushvc = rstack.get(fpstack.get(fpsp) + (int) Math.round((rstack.get(sp))) + 1);
         rstack.set(sp, pushvc);
         break;
 
       case "pushvs":
-        float pushvs = rstack.get(fpstack.get(fpsp) + (int)(rstack.get(sp)) + 1);
+        float pushvs = rstack.get(fpstack.get(fpsp) + (int) Math.round((rstack.get(sp))) + 1);
         rstack.set(sp, pushvs);
         break;
 
       case "pushvi":
-        float pushvi = rstack.get(fpstack.get(fpsp) + (int)(rstack.get(sp)) + 1);
+        float pushvi = rstack.get(fpstack.get(fpsp) + (int) Math.round((rstack.get(sp))) + 1);
         rstack.set(sp, pushvi);
         break;
 
       case "pushvf":
-        float pushvf = rstack.get(fpstack.get(fpsp) + (int)(rstack.get(sp)) + 1);
+        float pushvf = rstack.get(fpstack.get(fpsp) + (int) Math.round((rstack.get(sp))) + 1);
         rstack.set(sp, pushvf);
         break;
 
@@ -159,7 +155,7 @@ public class Interpreter{
         break;
 
       case "popv":
-        rstack.set(fpstack.get(fpsp)+ (int)rstack.get(sp)+ 1, rstack.get(sp-1));
+        rstack.set(fpstack.get(fpsp)+ (int) Math.round(rstack.get(sp)+ 1), rstack.get(sp-1));
         sp -= 2;
         break;
 
@@ -168,26 +164,26 @@ public class Interpreter{
         break;
 
       case "peekc":
-        int temp1 = (int)rstack.get(fpstack(fpsp) + (int)rstack.get(sp - 1) + 1);
-        float temp2 = rstack.get(fpstack(fpsp) + (int)rstack.get(sp) + 1);
+        int temp1 = (int) Math.round(rstack.get(fpstack(fpsp) + (int) Math.round(rstack.get(sp - 1) + 1)));
+        float temp2 = rstack.get(fpstack(fpsp) + (int) Math.round(stack.get(sp) + 1));
         rstack.set(temp1, temp2);
         break;
 
       case "peeks":
-        int temp1_short = (int)rstack.get(fpstack(fpsp) + (int)rstack.get(sp - 1) + 1);
-        float temp2_short = rstack.get(fpstack(fpsp) + (int)rstack.get(sp) + 1);
+        int temp1_short = (int) Math.round(rstack.get(fpstack(fpsp) + (int) Math.round(rstack.get(sp - 1) + 1)));
+        float temp2_short = rstack.get(fpstack(fpsp) + (int) Math.round(rstack.get(sp) + 1));
         rstack.set(temp1_short, temp2_short);
         break;
 
       case "peeki":
-        int temp1_int = (int)rstack.get(fpstack(fpsp) + (int)rstack.get(sp - 1) + 1);
-        float temp2_int = rstack.get(fpstack(fpsp) + (int)rstack.get(sp) + 1);
+        int temp1_int = (int) Math.round(rstack.get(fpstack(fpsp) + (int) Math.round(rstack.get(sp - 1) + 1)));
+        float temp2_int = rstack.get(fpstack(fpsp) + (int) Math.round(rstack.get(sp) + 1));
         rstack.set(temp1_int, temp2_int);
         break;
 
       case "peekf":
-        int temp1_float = (int)rstack.get(fpstack(fpsp) + (int)rstack.get(sp - 1) + 1);
-        float temp2_float = rstack.get(fpstack(fpsp) + (int)rstack.get(sp) + 1);
+        int temp1_float = (int) Math.round(rstack.get(fpstack(fpsp) + (int) Math.round(rstack.get(sp - 1) + 1)));
+        float temp2_float = rstack.get(fpstack(fpsp) + (int) Math.round(rstack.get(sp) + 1));
         rstack.set(temp1_float, temp2_float);
         break;
 

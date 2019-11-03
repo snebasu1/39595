@@ -14,16 +14,16 @@ class Main{
     try{
       byte[] memory = Files.readAllBytes(path);
 
-      for(int i = 0; i < memory.length; i++){
+      /*for(int i = 0; i < memory.length; i++){
         System.out.println(Byte.toUnsignedInt(memory[i]));
       }
-      //int memory[] = new int[content.length];
-      /*for(int i = 0; i < memory.length; i++){
+      int memory[] = new int[content.length];
+      for(int i = 0; i < memory.length; i++){
         memory[i] = Byte.toUnsignedInt(content[i]);
       }*/
 
-      //Interpreter interpreter = new Interpreter(memory);
-      //interpreter.execute();
+      Interpreter interpreter = new Interpreter(memory);
+      interpreter.execute();
     }
     catch(Exception e){
       System.out.println("Error in reading binary file");
