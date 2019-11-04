@@ -17,6 +17,7 @@ class Main{
       /*for(int i = 0; i < memory.length; i++){
         System.out.println(Byte.toUnsignedInt(memory[i]));
       }
+      
       int memory[] = new int[content.length];
       for(int i = 0; i < memory.length; i++){
         memory[i] = Byte.toUnsignedInt(content[i]);
@@ -26,7 +27,7 @@ class Main{
       interpreter.execute();
     }
     catch(Exception e){
-      System.out.println("Error in reading binary file");
+      System.out.println(e);
       System.exit(0);
     }
 

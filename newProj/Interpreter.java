@@ -1,5 +1,10 @@
 import java.util.*;
+
+import javax.swing.text.Style;
+
 import java.lang.*;
+import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
 
 public class Interpreter{
   private HashMap<Integer, String> map = new HashMap<>(){{
@@ -61,45 +66,74 @@ public class Interpreter{
   public void runCommand(String command){
     switch(command){
       case "cmpe":
-        float cmpe = (rstack.get(sp) == rstack.get(sp-1)) ? 1 : 0;
-        rstack.set(sp-1, cmpe);
+        int cmpe ;
+        if (rstack.get(sp-1).equals(rstack.get(sp))){
+          cmpe = 1;
+        }
+        else{
+          cmpe = 0;
+        }
+        
+        rstack.set(sp-1, (float)cmpe);
+        rstack.remove(sp);
         sp--;
+        pc++;
         break;
 
       case "cmplt":
         float cmplt = (rstack.get(sp - 1) < rstack.get(sp)) ? 1 : 0;
         rstack.set(sp-1, cmplt);
+        rstack.remove(sp);
         sp--;
+        pc++;
         break;
 
       case "cmpgt":
         float cmpgt = (rstack.get(sp - 1) > rstack.get(sp)) ? 1 : 0;
         rstack.set(sp-1, cmpgt);
+        rstack.remove(sp);
         sp--;
+        pc++;
         break;
 
       case "jmp":
         pc = (int) Math.round(rstack.get(sp));
+        rstack.remove(sp);
         sp--;
+        //pc++;
         break;
 
       case "jmpc":
-        //ask about second line
+        if(rstack.get(sp-1).equals((float)1)){
+          pc = (int) Math.round(rstack.get(sp));
+        }
+        else{
+          pc++;
+        }
+        rstack.remove(sp);
+        sp--;
+        rstack.remove(sp);
+        sp--;
+        //pc++; //confirm this
         break;
 
       case "call":
         int call = sp - (int) Math.round(rstack.get(sp)) - 1;
+        rstack.remove(sp);
         sp--;
-        fpsp++;
         fpstack.add(call);
+        fpsp++;
         pc = (int) Math.round(rstack.get(sp));
+        rstack.remove(sp);
         sp--; 
         break;
 
       case "ret":
         sp = fpstack.get(fpsp);
         pc = (int) Math.round(rstack.get(sp));
+        fpstack.remove(fpsp);
         fpsp--;
+        rstack.remove(sp);
         sp--;
         break;
 
@@ -110,21 +144,28 @@ public class Interpreter{
         break;
 
       case "pushs":
-        float pushs = (memory[pc+2] << 8) + (memory[pc+1] << 0);
-        rstack.add(pushs);
+        byte[] bytes_s = {memory[pc+1], memory[pc+2]};
+        short[] shorts = new short[1];
+        ByteBuffer.wrap(bytes_s).order(ByteOrder.LITTLE_ENDIAN).asShortBuffer().get(shorts);
+        rstack.add((float)shorts[0]);
         sp++;
         pc += 3;
         break;
 
       case "pushi":
-        float pushi = (memory[pc+4] << 24) + (memory[pc+3] << 16) + (memory[pc+2] << 8) + (memory[pc+1] << 0);
-        rstack.add(pushi);
+        byte[] bytes_i = {memory[pc+1], memory[pc+2], memory[pc+3], memory[pc+4]};
+        int pushi = ByteBuffer.wrap(bytes_i).order(ByteOrder.LITTLE_ENDIAN).getInt();
+        //float pushi = (memory[pc+4] << 24) + (memory[pc+3] << 16) + (memory[pc+2] << 8) + (memory[pc+1] << 0);
+        rstack.add((float)pushi);
         sp++;
         pc += 5;
+        //System.out.println("Pushed Value " + pushi);
         break;
 
       case "pushf":
-        float pushf = (memory[pc+4] << 24) + (memory[pc+3] << 16) + (memory[pc+2] << 8) + (memory[pc+1] << 0);
+        byte[] bytes_f = {memory[pc+1], memory[pc+2], memory[pc+3], memory[pc+4]};
+        float pushf = ByteBuffer.wrap(bytes_f).order(ByteOrder.LITTLE_ENDIAN).getFloat();
+        //float pushf = Float.intBitsToFloat(memory[pc+4] | memory[pc+3]<<8 | memory[pc+2]<<16 | memory[pc+1]<<24);
         rstack.add(pushf);
         sp++;
         pc += 5;
@@ -133,140 +174,291 @@ public class Interpreter{
       case "pushvc":
         float pushvc = rstack.get(fpstack.get(fpsp) + (int) Math.round((rstack.get(sp))) + 1);
         rstack.set(sp, pushvc);
+        pc++;
         break;
 
       case "pushvs":
         float pushvs = rstack.get(fpstack.get(fpsp) + (int) Math.round((rstack.get(sp))) + 1);
         rstack.set(sp, pushvs);
+        pc++;
         break;
 
       case "pushvi":
         float pushvi = rstack.get(fpstack.get(fpsp) + (int) Math.round((rstack.get(sp))) + 1);
         rstack.set(sp, pushvi);
+        pc++;
         break;
 
       case "pushvf":
         float pushvf = rstack.get(fpstack.get(fpsp) + (int) Math.round((rstack.get(sp))) + 1);
         rstack.set(sp, pushvf);
+        pc++;
         break;
 
       case "popm":
-        sp -= rstack.get(sp) + 1;
+        int count = (int) Math.round(rstack.get(sp) + 1);
+      
+        for(int i = 0; i < count; i++){
+          rstack.remove(sp);
+          sp--;
+        }
+        //sp -= rstack.get(sp) + 1;
+        pc++;
         break;
 
       case "popv":
         rstack.set(fpstack.get(fpsp)+ (int) Math.round(rstack.get(sp)+ 1), rstack.get(sp-1));
-        sp -= 2;
+        rstack.remove(sp);
+        sp--;
+        rstack.remove(sp);
+        sp--;
+        //sp -= 2;
+        pc++;
         break;
 
       case "popa":
-        //do not understand what to do here
+        int p = (int) Math.round(rstack.get(sp));
+        rstack.remove(sp);
+        sp--;
+        //System.out.println("Elements to keep: " + p);
+
+        float temp[] = new float[p];
+
+        if(p != 0){
+          
+          for(int i = p; i > 0; i++){
+            temp[i-p] = rstack.get(sp);
+            rstack.remove(sp);
+            sp--;
+          }
+        }
+
+        while(sp != fpstack.get(fpsp)){
+          rstack.remove(sp);
+          sp--;
+        }
+
+        if(p != 0){
+          for(int i = 0; i < p; i++){
+            rstack.add(temp[i]);
+            sp++;
+          }
+        }
+
+        pc++;
         break;
 
       case "peekc":
-        int temp1 = (int) Math.round(rstack.get(fpstack(fpsp) + (int) Math.round(rstack.get(sp - 1) + 1)));
-        float temp2 = rstack.get(fpstack(fpsp) + (int) Math.round(stack.get(sp) + 1));
-        rstack.set(temp1, temp2);
+        int temp_peekc_1 = fpstack.get(fpsp);
+        float temp_peekc_2 = rstack.get(sp-1);
+        float temp_peekc_3 = rstack.get(sp);
+        
+        rstack.remove(sp);
+        sp--;
+        rstack.remove(sp);
+        sp--;
+
+        int set_peekc = temp_peekc_1 + (int)Math.round(temp_peekc_2) + 1;
+        int set2_peekc = temp_peekc_1 + (int)Math.round(temp_peekc_3) + 1;
+
+        rstack.set(set_peekc, rstack.get(set2_peekc));
+        pc++;
         break;
 
       case "peeks":
-        int temp1_short = (int) Math.round(rstack.get(fpstack(fpsp) + (int) Math.round(rstack.get(sp - 1) + 1)));
-        float temp2_short = rstack.get(fpstack(fpsp) + (int) Math.round(rstack.get(sp) + 1));
-        rstack.set(temp1_short, temp2_short);
+        int temp_peeks_1 = fpstack.get(fpsp);
+        float temp_peeks_2 = rstack.get(sp-1);
+        float temp_peeks_3 = rstack.get(sp);
+        
+        rstack.remove(sp);
+        sp--;
+        rstack.remove(sp);
+        sp--;
+
+        int set_peeks = temp_peeks_1 + (int)Math.round(temp_peeks_2) + 1;
+        int set2_peeks = temp_peeks_1 + (int)Math.round(temp_peeks_3) + 1;
+
+        rstack.set(set_peeks, rstack.get(set2_peeks));
+        pc++;
         break;
 
       case "peeki":
-        int temp1_int = (int) Math.round(rstack.get(fpstack(fpsp) + (int) Math.round(rstack.get(sp - 1) + 1)));
-        float temp2_int = rstack.get(fpstack(fpsp) + (int) Math.round(rstack.get(sp) + 1));
-        rstack.set(temp1_int, temp2_int);
+        int temp_peeki_1 = fpstack.get(fpsp);
+        float temp_peeki_2 = rstack.get(sp-1);
+        float temp_peeki_3 = rstack.get(sp);
+        
+        rstack.remove(sp);
+        sp--;
+        rstack.remove(sp);
+        sp--;
+
+        int set_peeki = temp_peeki_1 + (int)Math.round(temp_peeki_2) + 1;
+        int set2_peeki = temp_peeki_1 + (int)Math.round(temp_peeki_3) + 1;
+
+        rstack.set(set_peeki, rstack.get(set2_peeki));
+        pc++;
         break;
 
       case "peekf":
-        int temp1_float = (int) Math.round(rstack.get(fpstack(fpsp) + (int) Math.round(rstack.get(sp - 1) + 1)));
-        float temp2_float = rstack.get(fpstack(fpsp) + (int) Math.round(rstack.get(sp) + 1));
-        rstack.set(temp1_float, temp2_float);
+        int temp_peekf_1 = fpstack.get(fpsp);
+        float temp_peekf_2 = rstack.get(sp-1);
+        float temp_peekf_3 = rstack.get(sp);
+        
+        rstack.remove(sp);
+        sp--;
+        rstack.remove(sp);
+        sp--;
+
+        int set_peekf = temp_peekf_1 + (int)Math.round(temp_peekf_2) + 1;
+        int set2_peekf = temp_peekf_1 + (int)Math.round(temp_peekf_3) + 1;
+
+        rstack.set(set_peekf, rstack.get(set2_peekf));
+        pc++;
         break;
 
       case "pokec":
-      int poke1_char = (int)rstack.get(fpstack(fpsp) + (int)rstack.get(sp) + 1);
-      float poke2_char  = rstack.get(fpstack(fpsp)+ (int)rstack.get(sp-1)+1);
-      rstack.set(poke1_char, poke2_char);
+        int temp_pokec_1 = fpstack.get(fpsp);
+        float temp_pokec_2 = rstack.get(sp-1);
+        float temp_pokec_3 = rstack.get(sp);
+        
+        rstack.remove(sp);
+        sp--;
+        rstack.remove(sp);
+        sp--;
+
+        int set_pokec = temp_pokec_1 + (int)Math.round(temp_pokec_3) + 1;
+        int set2_pokec = temp_pokec_1 + (int)Math.round(temp_pokec_2) + 1;
+
+        rstack.set(set_pokec, rstack.get(set2_pokec));
+        pc++;
         break;
 
       case "pokes":
-      int poke1_short = (int)rstack.get(fpstack(fpsp) + (int)rstack.get(sp) + 1);
-      float poke2_short  = rstack.get(fpstack(fpsp)+ (int)rstack.get(sp-1)+1);
-      rstack.set(poke1_short, poke2_short);
-        break;
+      int temp_pokes_1 = fpstack.get(fpsp);
+      float temp_pokes_2 = rstack.get(sp-1);
+      float temp_pokes_3 = rstack.get(sp);
+      
+      rstack.remove(sp);
+      sp--;
+      rstack.remove(sp);
+      sp--;
+
+      int set_pokes = temp_pokes_1 + (int)Math.round(temp_pokes_3) + 1;
+      int set2_pokes = temp_pokes_1 + (int)Math.round(temp_pokes_2) + 1;
+
+      rstack.set(set_pokes, rstack.get(set2_pokes));
+      pc++;
+      break;
 
       case "pokei":
-      int poke1_int = (int)rstack.get(fpstack(fpsp) + (int)rstack.get(sp) + 1);
-      float poke2_int  = rstack.get(fpstack(fpsp)+ (int)rstack.get(sp-1)+1);
-      rstack.set(poke1_int, poke2_int);
+        int temp_pokei_1 = fpstack.get(fpsp);
+        float temp_pokei_2 = rstack.get(sp-1);
+        float temp_pokei_3 = rstack.get(sp);
+        
+        rstack.remove(sp);
+        sp--;
+        rstack.remove(sp);
+        sp--;
+
+        int set_pokei = temp_pokei_1 + (int)Math.round(temp_pokei_3) + 1;
+        int set2_pokei = temp_pokei_1 + (int)Math.round(temp_pokei_2) + 1;
+
+        rstack.set(set_pokei, rstack.get(set2_pokei));
+        pc++;
         break;
 
       case "pokef":
-      int poke1_float = (int)rstack.get(fpstack(fpsp) + (int)rstack.get(sp) + 1);
-      float poke2_float  = rstack.get(fpstack(fpsp)+ (int)rstack.get(sp-1)+1);
-      rstack.set(poke1_float, poke2_float);
+        int temp_pokef_1 = fpstack.get(fpsp);
+        float temp_pokef_2 = rstack.get(sp-1);
+        float temp_pokef_3 = rstack.get(sp);
+        
+        rstack.remove(sp);
+        sp--;
+        rstack.remove(sp);
+        sp--;
+
+        int set_pokef = temp_pokef_1 + (int)Math.round(temp_pokef_3) + 1;
+        int set2_pokef = temp_pokef_1 + (int)Math.round(temp_pokef_2) + 1;
+
+        rstack.set(set_pokef, rstack.get(set2_pokef));
+        pc++;
         break;
 
       case "swp":
-       
         float tmp = rstack.get(sp-1);
         rstack.set(sp-1, rstack.get(sp));
         rstack.set(sp, tmp);
-
+        pc++; 
         break;
 
     case "add":
-      float add1 = rstack.get(sp-1) + rstack.get(sp);
-      rstack.set(sp-1, add1);
-      sp--;
+        float add1 = rstack.get(sp-1) + rstack.get(sp);
+        rstack.set(sp-1, add1);
+        rstack.remove(sp);
+        sp--;
+        pc++;
         break;
 
       case "sub":
         float sub1 = rstack.get(sp-1) - rstack.get(sp);
-      rstack.set(sp-1, sub1);
-      sp--;
+        rstack.set(sp-1, sub1);
+        rstack.remove(sp);
+        sp--;
+        pc++;
         break;
 
       case "mul":
-      float mul1 = rstack.get(sp-1) * rstack.get(sp);
-      rstack.set(sp-1, mul1);
-      sp--;
+        float mul1 = rstack.get(sp-1) * rstack.get(sp);
+        rstack.set(sp-1, mul1);
+        rstack.remove(sp);
+        sp--;
+        pc++;
         break;
 
       case "div":
         float div1 = rstack.get(sp-1) / rstack.get(sp);
         rstack.set(sp-1, div1);
+        rstack.remove(sp);
         sp--;
+        pc++;
         break;
 
       case "printc":
-      System.out.println((char)rstack.get(sp));
-      sp--;
+        //System.out.println("PRINTC");
+        System.out.println(Math.round(rstack.get(sp)));
+        rstack.remove(sp);
+        sp--;
+        pc++;
         break;
 
       case "printi":
       //TODO check conversion
-      System.out.println((int)rstack.get(sp));
-      sp--;
+        System.out.println((int)Math.round(rstack.get(sp)));
+        rstack.remove(sp);
+        sp--;
+        pc++;
         break;
 
       case "printf":
-      System.out.println((float)rstack.get(sp));
-      sp--;
+        System.out.println(rstack.get(sp));
+        rstack.remove(sp);
+        sp--;
+        pc++;
         break;
 
       case "prints":
-      System.out.println((short)rstack.get(sp));
-      sp--;
+        System.out.println((short)Math.round(rstack.get(sp)));
+        rstack.remove(sp);
+        sp--;
+        pc++;
         break;
 
       case "halt":
+        System.out.println("\nCompile values:");
+        System.out.println("PC: "+ pc);
+        System.out.println("SP: " + sp);
         if (sp == -1){
-          System.out.println("Rstack: Empty");
+          System.out.print("Rstack: Empty");
         }
         else{
           System.out.print("Rstack: ");
@@ -275,9 +467,9 @@ public class Interpreter{
           }
         }
         System.out.println("");
-        System.out.println("SP: " + sp);
+        
         System.out.println("FPSP: "+ fpsp);
-        System.out.println("PC: "+ pc);
+        
         if (fpsp == -1){
           System.out.println("FPstack: Empty");
         }
@@ -288,28 +480,54 @@ public class Interpreter{
           }
         }
         System.out.println("");
+        System.exit(0);
         break;
     }
   }
 
-  public void execute(){
-    while(pc < memory.length/* && memory[pc] != 0*/){
-      String command;
-      int op_code = Byte.toUnsignedInt(memory[pc]);
-      if(map.containsKey(op_code)){
-        if(op_code != 0){
-          command = map.get(op_code);
-          runCommand(command);
-        }
-      }
-      /*else{
-        System.out.println("Invalid Op Code");
-        System.exit(0);
-      }*/
+  public void printState(int op_code, String command){
+    System.out.println(op_code + ", " + command);
+    if (sp == -1){
+      System.out.println("Rstack: Empty");
     }
+    else{
+      System.out.print("Rstack: ");
+      for(float i: rstack){
+        System.out.print(i + ", ");
+      }
+    }
+    System.out.println("");
+    System.out.println("SP: " + sp);
+    System.out.println("FPSP: "+ fpsp);
+    System.out.println("PC: "+ pc);
+    if (fpsp == -1){
+      System.out.println("FPstack: Empty");
+    }
+    else{ 
+      System.out.print("FPstack: ");
+      for(int i: fpstack){
+        System.out.print(i + ", ");
+      }
+    }
+    System.out.println("");
+    System.out.println("\n");
   }
 
-  public void state(){
-    //retrun current state
+  public void execute(){
+    int op_code;
+    do{
+      String command;
+      op_code = Byte.toUnsignedInt(memory[pc]);
+      if(map.containsKey(op_code)){
+        command = map.get(op_code);
+        runCommand(command);
+        //printState(op_code,command);      
+
+        /*if(op_code == 86){
+          printState(op_code,command);      
+        }*/
+      }
+    }while(true);
   }
+
 }
